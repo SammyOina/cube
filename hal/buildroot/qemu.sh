@@ -6,11 +6,12 @@ VM_NAME="cube-ai-vm"
 RAM="10240M"
 CPU="4"
 CPU_TYPE="EPYC-v4"
-QEMU_AMDSEV_BINARY="/var/cube-ai/bin/qemu-system-x86_64"
+QEMU_AMDSEV_BINARY="/usr/bin/qemu-system-x86_64"
 QEMU_OVMF_CODE="/var/cube-ai/OVMF.fd"
-KERNEL_PATH="../../buildroot/output/images/bzImage"
+KERNEL_PATH="/etc/cube/bzImage"
 # INITRD_PATH="../../buildroot/output/images/rootfs.cpio.gz" # Unused for disk boot
-FS_PATH="../../buildroot/output/images/rootfs.ext4"
+FS_PATH="/etc/cube/rootfs.ext4"
+CERTS_PATH="/etc/cube/certs"
 QEMU_APPEND_ARG="root=/dev/vda rw console=ttyS0"
 
 function check(){
@@ -42,12 +43,14 @@ function start_qemu(){
     -cpu $CPU_TYPE \
     -machine q35 \
     -enable-kvm \
-    -netdev user,id=vmnic,hostfwd=tcp::6190-:22,hostfwd=tcp::6191-:80,hostfwd=tcp::6192-:443,hostfwd=tcp::6193-:6193,dns=8.8.8.8 \
+    -netdev user,id=vmnic,hostfwd=tcp::6190-:22,hostfwd=tcp::6191-:80,hostfwd=tcp::6192-:443,hostfwd=tcp::6193-:7001,hostfwd=tcp::6194-:11434,hostfwd=tcp::6195-:8000,dns=8.8.8.8 \
     -device virtio-net-pci,disable-legacy=on,iommu_platform=true,netdev=vmnic,romfile= \
     -nographic \
     -no-reboot \
     -kernel $KERNEL_PATH \
     -drive file=$FS_PATH,format=raw,if=virtio,index=0  \
+    -fsdev local,id=cert_fs,path=$CERTS_PATH,security_model=mapped \
+    -device virtio-9p-pci,fsdev=cert_fs,mount_tag=certs_share \
     -append "$QEMU_APPEND_ARG"
 }
 
@@ -68,7 +71,7 @@ function start_cvm(){
     -cpu $CPU_TYPE \
     -machine q35 \
     -enable-kvm \
-    -netdev user,id=vmnic,hostfwd=tcp::6190-:22,hostfwd=tcp::6191-:80,hostfwd=tcp::6192-:443,hostfwd=tcp::6193-:6193,dns=8.8.8.8 \
+    -netdev user,id=vmnic,hostfwd=tcp::6190-:22,hostfwd=tcp::6191-:80,hostfwd=tcp::6192-:443,hostfwd=tcp::6193-:7001,hostfwd=tcp::6194-:11434,hostfwd=tcp::6195-:8000,dns=8.8.8.8 \
     -device virtio-net-pci,disable-legacy=on,iommu_platform=true,netdev=vmnic,romfile= \
     -nographic \
     -no-reboot \
@@ -96,11 +99,13 @@ function start_tdx(){
     -no-reboot \
     -serial mon:stdio \
     -device virtio-net-pci,netdev=nic0_td \
-    -netdev user,id=nic0_td,hostfwd=tcp::7021-:7002 \
+    -netdev user,id=nic0_td,hostfwd=tcp::6190-:22,hostfwd=tcp::6191-:80,hostfwd=tcp::6192-:443,hostfwd=tcp::6193-:7001,hostfwd=tcp::6194-:11434,hostfwd=tcp::6195-:8000,dns=8.8.8.8 \
     -kernel $KERNEL_PATH \
     -append "$QEMU_APPEND_ARG" \
     -object memory-backend-memfd,id=mem0,size=20G \
     -drive file=$FS_PATH,format=raw,if=virtio \
+    -fsdev local,id=cert_fs,path=$CERTS_PATH,security_model=mapped \
+    -device virtio-9p-pci,fsdev=cert_fs,mount_tag=certs_share \
     -device vhost-vsock-pci,guest-cid=6 \
     -monitor pty \
     -monitor unix:monitor,server,nowait
