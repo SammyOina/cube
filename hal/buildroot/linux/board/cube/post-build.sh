@@ -2,8 +2,10 @@
 # Copyright (c) Ultraviolet
 # SPDX-License-Identifier: Apache-2.0
 
-set -u
-set -e
+set -eu
+
+# Ensure /etc exists (post-build may run when it's not there yet)
+mkdir -p "${TARGET_DIR}/etc"
 
 # Add a console on tty1
 if [ -e ${TARGET_DIR}/etc/inittab ]; then
