@@ -473,8 +473,6 @@ services:
       MG_BACKEND_OBJECT_STORAGE_SECRET_KEY: ${MG_BACKEND_OBJECT_STORAGE_SECRET_KEY}
       MG_BACKEND_OBJECT_STORAGE_WRITE_TTL: ${MG_BACKEND_OBJECT_STORAGE_WRITE_TTL}
       MG_BACKEND_OBJECT_STORAGE_READ_TTL: ${MG_BACKEND_OBJECT_STORAGE_READ_TTL}
-    extra_hosts:
-      - "localhost:host-gateway"
     depends_on:
       magistrala-ui-backend-db:
         condition: service_started
