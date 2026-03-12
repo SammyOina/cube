@@ -8,7 +8,7 @@ volumes:
   cube-certs-db-volume:
   openbao-data:
   openbao-ca:
-  cube-ui-backend-db-volume:
+  magistrala-ui-backend-db-volume:
 
 services:
   cloudflared:
@@ -513,7 +513,7 @@ services:
     networks:
       - cube-network
     volumes:
-      - cube-ui-backend-db-volume:/var/lib/postgresql/data
+      - magistrala-ui-backend-db-volume:/var/lib/postgresql/data
     command: postgres -c "max_connections=${MG_POSTGRES_MAX_CONNECTIONS}"
 
   seaweedfs-s3:
