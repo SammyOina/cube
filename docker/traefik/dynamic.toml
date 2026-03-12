@@ -24,6 +24,9 @@
 [http.middlewares.strip-domains-health-prefix-middleware.stripPrefix]
   prefixes = ["/domains"]
 
+[http.middlewares.strip-s3-prefix-middleware.stripPrefix]
+  prefixes = ["/s3"]
+
 # HTTP Services
 [http.services.users.loadBalancer]
   [[http.services.users.loadBalancer.servers]]
@@ -140,3 +143,15 @@
   service = "ui"
   middlewares = ["retry-middleware", "headers-middleware"]
   priority = 1
+
+# SeaweedFS S3 - Object Storage (for image uploads via presigned URLs)
+[http.services.seaweedfs-s3.loadBalancer]
+  [[http.services.seaweedfs-s3.loadBalancer.servers]]
+    url = "http://magistrala-seaweedfs-s3:8333"
+
+[http.routers.seaweedfs-s3]
+  rule = "PathPrefix(`/s3`)"
+  entryPoints = ["websecure"]
+  service = "seaweedfs-s3"
+  middlewares = ["strip-s3-prefix-middleware", "headers-middleware"]
+  priority = 10
