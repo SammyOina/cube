@@ -432,9 +432,9 @@ services:
       OLLAMA_DEFAULT_MODEL: ${UV_CUBE_UI_LLM_DEFAULT_MODEL}
       GUARDRAILS_BASE_URL: ${GUARDRAILS_BASE_URL}
 
-  backend:
+  magistrala-backend:
     image: ghcr.io/absmach/magistrala/ui-backend:${MG_RELEASE_TAG}
-    container_name: cube-backend
+    container_name: magistrala-backend
     restart: on-failure
     ports:
       - ${MG_BACKEND_HTTP_PORT}:${MG_BACKEND_HTTP_PORT}
@@ -474,11 +474,11 @@ services:
       MG_BACKEND_OBJECT_STORAGE_WRITE_TTL: ${MG_BACKEND_OBJECT_STORAGE_WRITE_TTL}
       MG_BACKEND_OBJECT_STORAGE_READ_TTL: ${MG_BACKEND_OBJECT_STORAGE_READ_TTL}
     depends_on:
-      backend-db:
+      magistrala-ui-backend-db:
         condition: service_started
-      seaweedfs-s3:
+      magistrala-seaweedfs-s3:
         condition: service_started
-      seaweedfs-init:
+      magistrala-seaweedfs-init:
         condition: service_completed_successfully
     volumes:
       - type: bind
@@ -501,9 +501,9 @@ services:
         target: /etc/ssl/certs/ca.crt
         read_only: true
 
-  backend-db:
+  magistrala-ui-backend-db:
     image: postgres:16.2-alpine
-    container_name: cube-ui-backend-db
+    container_name: magistrala-ui-backend-db
     restart: on-failure
     environment:
       POSTGRES_USER: ${MG_BACKEND_DB_USER}
@@ -516,9 +516,9 @@ services:
       - magistrala-ui-backend-db-volume:/var/lib/postgresql/data
     command: postgres -c "max_connections=${MG_POSTGRES_MAX_CONNECTIONS}"
 
-  seaweedfs-s3:
+  magistrala-seaweedfs-s3:
     image: chrislusf/seaweedfs:4.16
-    container_name: cube-seaweedfs-s3
+    container_name: magistrala-seaweedfs-s3
     command: server -s3 -s3.config=/etc/seaweedfs/s3.json -dir=/data
     ports:
       - "8333:8333" # S3 endpoint
@@ -528,18 +528,18 @@ services:
     networks:
       - cube-network
 
-  seaweedfs-init:
+  magistrala-seaweedfs-init:
     image: amazon/aws-cli
-    container_name: cube-seaweedfs-init
+    container_name: magistrala-seaweedfs-init
     entrypoint: /bin/sh
     depends_on:
-      - seaweedfs-s3
+      - magistrala-seaweedfs-s3
     command:
       - -c
       - |
         echo "[INIT] Waiting 20s for SeaweedFS S3 to be ready...";
         sleep 20;
-        OUT=$(aws --endpoint-url http://seaweedfs-s3:8333 s3api create-bucket --bucket $${BUCKET} 2>&1);
+        OUT=$(aws --endpoint-url http://magistrala-seaweedfs-s3:8333 s3api create-bucket --bucket $${BUCKET} 2>&1);
         EXIT=$$?;
         if [ $$EXIT -eq 0 ]; then
           echo "[INIT] Bucket $${BUCKET} created successfully.";
